@@ -23,11 +23,10 @@ import com.temetra.vroomapi.model.RequestError;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.web.ErrorController;
+import org.springframework.http.HttpStatus;
 import org.springframework.util.MimeTypeUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -36,7 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-public class RouteController {
+public class RouteController implements ErrorController {
 
     @Value("${vroom.binlocation}")
     private String vroomBinary;
@@ -101,7 +100,19 @@ public class RouteController {
         return jsonMapper.readTree(output.toString());
     }
 
+    @Override
+    public String getErrorPath() {
+        return "/error";
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @RequestMapping(value = "/error", produces = MimeTypeUtils.APPLICATION_JSON_VALUE)
+    public RequestError badRequest() {
+        return new RequestError("Bad request");
+    }
+
     @ExceptionHandler
+    @RequestMapping(MimeTypeUtils.APPLICATION_JSON_VALUE)
     public RequestError error(final Exception e) {
         log.error("Exception when creating response", e);
         return new RequestError(e.getMessage());
