@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Temetra Ltd.
+ * Copyright 2018 Temetra Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,14 @@
  * limitations under the License.
  */
 
-package com.temetra.vroomapi.model;
+package com.temetra.vroomapi
 
-public class RequestError {
-    private String error;
+import org.springframework.boot.SpringApplication
+import org.springframework.boot.autoconfigure.SpringBootApplication
 
-    public RequestError(String error) {
-        this.error = error;
-    }
+@SpringBootApplication
+class VroomApplication
 
-    public String getError() {
-        return error;
-    }
-
-    public void setError(String error) {
-        this.error = error;
-    }
+fun main(args: Array<String>) {
+    SpringApplication.run(VroomApplication::class.java, *args)
 }
