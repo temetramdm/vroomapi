@@ -18,6 +18,7 @@ package com.temetra.vroomapi
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.common.base.Joiner
 import org.apache.commons.logging.LogFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.web.ErrorController
@@ -57,7 +58,7 @@ class RouteController : ErrorController {
     @Throws(Exception::class)
     fun route(@RequestParam(value = "loc") locs: Array<String>,
               @RequestParam start: String,
-              @RequestParam(required = false) end: String,
+              @RequestParam(required = false) end: String?,
               @RequestParam(defaultValue = "false") includeGeometry: Boolean): JsonNode {
         val runCount = counter.getAndIncrement()
 
@@ -97,15 +98,17 @@ class RouteController : ErrorController {
         }
 
         // validate the end location
-        val endLonLat: Array<Double>
-        lonLat = end.split(",")
-        if(lonLat.size != 2) {
-            throw Exception("Need both longitude and latitude for end coord: $end")
-        }
-        try {
-            endLonLat = arrayOf(lonLat[0].toDouble(), lonLat[1].toDouble())
-        } catch (e: Exception) {
-            throw Exception("Invalid end coord: $end")
+        var endLonLat: Array<Double>? = null
+        if(end != null) {
+            lonLat = end.split(",")
+            if (lonLat.size != 2) {
+                throw Exception("Need both longitude and latitude for end coord: $end")
+            }
+            try {
+                endLonLat = arrayOf(lonLat[0].toDouble(), lonLat[1].toDouble())
+            } catch (e: Exception) {
+                throw Exception("Invalid end coord: $end")
+            }
         }
 
         // construct the arguments
@@ -126,11 +129,11 @@ class RouteController : ErrorController {
         }
         val computeRequest = ComputeRequest(listOf(vehicle), jobs)
         progArgs.add("'" + jsonMapper.writeValueAsString(computeRequest) + "'")
+        log.info("Run (" + runCount + "): " + Joiner.on(' ').join(progArgs))
 
         val output = StringBuilder()
         val builder = ProcessBuilder(progArgs)
         builder.directory(vroomBinFile.parentFile)
-        builder.redirectErrorStream(true)
         val process = builder.start()
 
         BufferedReader(InputStreamReader(process.inputStream)).use {
@@ -144,7 +147,6 @@ class RouteController : ErrorController {
         log.info("Output (" + runCount + "): " + output.toString())
         return jsonMapper.readTree(output.toString())
     }
-
 
     /**
      * Override the default Spring 400 error handler when, for example, a required request param is not present
@@ -179,7 +181,8 @@ class RouteController : ErrorController {
      */
     data class ComputeRequest(val vehicles: List<Vehicle>, val jobs: List<Job>)
 
-    data class Vehicle(val id: Int, val start: Array<Double>, val end: Array<Double>) {
+    @Suppress("MemberVisibilityCanPrivate")
+    data class Vehicle(val id: Int, val start: Array<Double>, val end: Array<Double>?) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
@@ -196,11 +199,12 @@ class RouteController : ErrorController {
         override fun hashCode(): Int {
             var result = id
             result = 31 * result + Arrays.hashCode(start)
-            result = 31 * result + Arrays.hashCode(end)
+            result = 31 * result + (end?.let { Arrays.hashCode(it) } ?: 0)
             return result
         }
     }
 
+    @Suppress("MemberVisibilityCanPrivate")
     data class Job(val id: Int, val location: Array<Double>) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
