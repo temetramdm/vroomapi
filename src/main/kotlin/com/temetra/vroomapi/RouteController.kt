@@ -57,7 +57,7 @@ class RouteController : ErrorController {
     @Throws(Exception::class)
     fun route(@RequestParam(value = "loc") locs: Array<String>,
               @RequestParam start: String,
-              @RequestParam end: String,
+              @RequestParam(required = false) end: String,
               @RequestParam(defaultValue = "false") includeGeometry: Boolean): JsonNode {
         val runCount = counter.getAndIncrement()
 
