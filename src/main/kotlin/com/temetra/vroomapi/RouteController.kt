@@ -16,18 +16,16 @@
 
 package com.temetra.vroomapi
 
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.common.base.Joiner
 import org.apache.commons.logging.LogFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.web.ErrorController
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.util.MimeTypeUtils
 import org.springframework.web.bind.annotation.*
-import java.io.BufferedReader
 import java.io.File
-import java.io.InputStreamReader
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 
@@ -55,11 +53,12 @@ class RouteController : ErrorController {
      * @param includeGeometry true or false, whether we want to output route geometry or not
      */
     @RequestMapping(value = "/route", produces = arrayOf(MimeTypeUtils.APPLICATION_JSON_VALUE))
+    @ResponseBody
     @Throws(Exception::class)
     fun route(@RequestParam(value = "loc") locs: Array<String>,
               @RequestParam start: String,
               @RequestParam(required = false) end: String?,
-              @RequestParam(defaultValue = "false") includeGeometry: Boolean): JsonNode {
+              @RequestParam(defaultValue = "false") includeGeometry: Boolean): ResponseEntity<String> {
         val runCount = counter.getAndIncrement()
 
         // make sure we can access and execute the binary
@@ -128,24 +127,28 @@ class RouteController : ErrorController {
             jobs.add(Job(i, arrayOf(coord.first, coord.second)))
         }
         val computeRequest = ComputeRequest(listOf(vehicle), jobs)
-        progArgs.add("'" + jsonMapper.writeValueAsString(computeRequest) + "'")
-        log.info("Run (" + runCount + "): " + Joiner.on(' ').join(progArgs))
 
-        val output = StringBuilder()
-        val builder = ProcessBuilder(progArgs)
-        builder.directory(vroomBinFile.parentFile)
-        val process = builder.start()
-
-        BufferedReader(InputStreamReader(process.inputStream)).use {
-            while (true) {
-                val line = it.readLine() ?: break
-                output.append(line)
-            }
-            process.waitFor()
+        // save to temp file
+        val tempFile = File.createTempFile("vroom_", null)
+        tempFile.deleteOnExit()
+        tempFile.printWriter().use { out ->
+            out.println(jsonMapper.writeValueAsString(computeRequest))
         }
+        progArgs.add("-i " + tempFile.absoluteFile)
+        log.debug("Run (" + runCount + "): " + Joiner.on(' ').join(progArgs))
 
-        log.info("Output (" + runCount + "): " + output.toString())
-        return jsonMapper.readTree(output.toString())
+        val process = Runtime.getRuntime().exec(Joiner.on(' ').join(progArgs))
+        var scanner = Scanner(process.inputStream)
+        if(scanner.hasNextLine()) {
+            val output = scanner.nextLine()
+            log.debug("Success output ($runCount): $output")
+            return ResponseEntity.ok(output)
+        } else {
+            scanner = Scanner(process.errorStream)
+            val output = scanner.nextLine()
+            log.debug("Error output ($runCount): $output")
+            throw Exception("Error output from VROOM binary: " + output)
+        }
     }
 
     /**
