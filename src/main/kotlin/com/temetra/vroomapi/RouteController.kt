@@ -16,6 +16,7 @@
 
 package com.temetra.vroomapi
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.common.base.Joiner
 import org.apache.commons.logging.LogFactory
@@ -42,6 +43,9 @@ class RouteController : ErrorController {
     lateinit var vroomBinary: String
 
     private val jsonMapper = ObjectMapper()
+    init {
+        jsonMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL)
+    }
 
     /**
      * The primary method, which handles taking in an array of coordinates along with some options, and
@@ -147,7 +151,7 @@ class RouteController : ErrorController {
             scanner = Scanner(process.errorStream)
             val output = scanner.nextLine()
             log.debug("Error output ($runCount): $output")
-            throw Exception("Error output from VROOM binary: " + output)
+            throw Exception("Error output from VROOM binary: $output")
         }
     }
 
