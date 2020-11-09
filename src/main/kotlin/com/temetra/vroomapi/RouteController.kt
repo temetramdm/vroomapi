@@ -42,6 +42,9 @@ class RouteController : ErrorController {
     @Value("\${vroom.binlocation}")
     lateinit var vroomBinary: String
 
+    @Value("\${vroom.use-osrm-lib:true}")
+    var vroomUseOsrmLib: Boolean = true
+
     private val jsonMapper = ObjectMapper()
     init {
         jsonMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL)
@@ -63,15 +66,19 @@ class RouteController : ErrorController {
               @RequestParam start: String,
               @RequestParam(required = false) end: String?,
               @RequestParam(defaultValue = "false") includeGeometry: Boolean): ResponseEntity<String> {
+        log.debug("Executing request with params vroomUseOsrmLib: [$vroomUseOsrmLib]")
         val runCount = counter.getAndIncrement()
 
+        var vroomBinFile:File? = null
         // make sure we can access and execute the binary
-        val vroomBinFile = File(vroomBinary)
-        if (!vroomBinFile.exists()) {
-            throw Exception("VROOM binary file doesn't exist")
-        }
-        if (!vroomBinFile.canExecute()) {
-            throw Exception("Cannot execute VROOM binary file")
+        if (vroomUseOsrmLib) {
+            vroomBinFile = File(vroomBinary)
+            if (!vroomBinFile.exists()) {
+                throw Exception("VROOM binary file doesn't exist")
+            }
+            if (!vroomBinFile.canExecute()) {
+                throw Exception("Cannot execute VROOM binary file")
+            }
         }
 
         // make sure we have some valid locations
@@ -116,8 +123,10 @@ class RouteController : ErrorController {
 
         // construct the arguments
         val progArgs = arrayListOf<String>()
-        progArgs.add(vroomBinFile.absolutePath)
-        progArgs.add("-l") // use libosrm
+        if (vroomUseOsrmLib) {
+            progArgs.add(vroomBinFile?.absolutePath!!)
+            progArgs.add("-l") // use libosrm
+        }
         progArgs.add("-t " + Runtime.getRuntime().availableProcessors())
         if (includeGeometry) {
             progArgs.add("-g")
