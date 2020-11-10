@@ -69,16 +69,13 @@ class RouteController : ErrorController {
         log.debug("Executing request with params vroomUseOsrmLib: [$vroomUseOsrmLib]")
         val runCount = counter.getAndIncrement()
 
-        var vroomBinFile:File? = null
         // make sure we can access and execute the binary
-        if (vroomUseOsrmLib) {
-            vroomBinFile = File(vroomBinary)
-            if (!vroomBinFile.exists()) {
-                throw Exception("VROOM binary file doesn't exist")
-            }
-            if (!vroomBinFile.canExecute()) {
-                throw Exception("Cannot execute VROOM binary file")
-            }
+        val vroomBinFile = File(vroomBinary)
+        if (!vroomBinFile.exists()) {
+            throw Exception("VROOM binary file doesn't exist")
+        }
+        if (!vroomBinFile.canExecute()) {
+            throw Exception("Cannot execute VROOM binary file")
         }
 
         // make sure we have some valid locations
@@ -123,8 +120,8 @@ class RouteController : ErrorController {
 
         // construct the arguments
         val progArgs = arrayListOf<String>()
+        progArgs.add(vroomBinFile.absolutePath)
         if (vroomUseOsrmLib) {
-            progArgs.add(vroomBinFile?.absolutePath!!)
             progArgs.add("-l") // use libosrm
         }
         progArgs.add("-t " + Runtime.getRuntime().availableProcessors())
