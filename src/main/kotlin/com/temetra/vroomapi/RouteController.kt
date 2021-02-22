@@ -65,7 +65,8 @@ class RouteController : ErrorController {
     fun route(@RequestParam(value = "loc") locs: Array<String>,
               @RequestParam start: String,
               @RequestParam(required = false) end: String?,
-              @RequestParam(defaultValue = "false") includeGeometry: Boolean): ResponseEntity<String> {
+              @RequestParam(defaultValue = "false") includeGeometry: Boolean,
+              @RequestParam(defaultValue = "EU") cluster: String): ResponseEntity<String> {
         log.debug("Executing request with params vroomUseOsrmLib: [$vroomUseOsrmLib]")
         val runCount = counter.getAndIncrement()
 
@@ -127,6 +128,12 @@ class RouteController : ErrorController {
         progArgs.add("-t " + Runtime.getRuntime().availableProcessors())
         if (includeGeometry) {
             progArgs.add("-g")
+        }
+
+        if(cluster == "EU"){
+            progArgs.add("-p"+ "5000")
+        }else if(cluster == "US"){
+            progArgs.add("-p"+ "5002")
         }
 
         // start building the objects for sending to VROOM
