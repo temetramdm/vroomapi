@@ -130,10 +130,14 @@ class RouteController : ErrorController {
             progArgs.add("-g")
         }
 
-        if(cluster == "EU"){
-            progArgs.add("-p"+ "5000")
-        }else if(cluster == "US"){
+        if(cluster == "US"){
             progArgs.add("-p"+ "5002")
+        } else if(cluster == "AU"){
+            progArgs.add("-p"+ "5004")
+        }else if(cluster == "CA"){
+            progArgs.add("-p"+ "5006")
+        } else {
+            progArgs.add("-p"+ "5000")
         }
 
         // start building the objects for sending to VROOM
