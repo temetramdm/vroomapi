@@ -25,6 +25,7 @@ import org.springframework.boot.autoconfigure.web.ErrorController
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MimeTypeUtils
+import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.*
 import java.io.File
 import java.util.*
@@ -59,7 +60,7 @@ class RouteController : ErrorController {
      * @param end the end coord, comma-separated lon-lat
      * @param includeGeometry true or false, whether we want to output route geometry or not
      */
-    @RequestMapping(value = "/route", produces = arrayOf(MimeTypeUtils.APPLICATION_JSON_VALUE))
+    @RequestMapping(value = ["/route"], produces = arrayOf(MimeTypeUtils.APPLICATION_JSON_VALUE))
     @ResponseBody
     @Throws(Exception::class)
     fun route(@RequestParam(value = "loc") locs: Array<String>,
@@ -84,12 +85,12 @@ class RouteController : ErrorController {
         for(loc in locs) {
             val lonLat = loc.split(",")
             if(lonLat.size != 2) {
-                throw Exception("Need both longitude and latitude for coord: $loc")
+                return ResponseEntity.badRequest().body("Need both longitude and latitude for coord: $loc")
             }
             try {
                 lonLats.add(Pair(lonLat[0].toDouble(), lonLat[1].toDouble()))
             } catch (e: Exception) {
-                throw Exception("Invalid coord: $loc")
+                return ResponseEntity.badRequest().body("Invalid coord: $loc")
             }
         }
 
@@ -97,12 +98,12 @@ class RouteController : ErrorController {
         val startLonLat: Array<Double>
         var lonLat = start.split(",")
         if(lonLat.size != 2) {
-            throw Exception("Need both longitude and latitude for start coord: $start")
+            return ResponseEntity.badRequest().body("Need both longitude and latitude for start coord: $start")
         }
         try {
             startLonLat = arrayOf(lonLat[0].toDouble(), lonLat[1].toDouble())
         } catch (e: Exception) {
-            throw Exception("Invalid start coord: $start")
+            return ResponseEntity.badRequest().body("Invalid start coord: $start")
         }
 
         // validate the end location
@@ -110,12 +111,12 @@ class RouteController : ErrorController {
         if(end != null) {
             lonLat = end.split(",")
             if (lonLat.size != 2) {
-                throw Exception("Need both longitude and latitude for end coord: $end")
+                return ResponseEntity.badRequest().body("Need both longitude and latitude for end coord: $end")
             }
             try {
                 endLonLat = arrayOf(lonLat[0].toDouble(), lonLat[1].toDouble())
             } catch (e: Exception) {
-                throw Exception("Invalid end coord: $end")
+                return ResponseEntity.badRequest().body("Invalid end coord: $end")
             }
         }
 
@@ -181,7 +182,7 @@ class RouteController : ErrorController {
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @RequestMapping(value = "/error", produces = arrayOf(MimeTypeUtils.APPLICATION_JSON_VALUE))
+    @RequestMapping(value = ["/error"], produces = arrayOf(MimeTypeUtils.APPLICATION_JSON_VALUE))
     fun badRequest(): RequestError {
         return RequestError("Bad request")
     }
@@ -193,6 +194,11 @@ class RouteController : ErrorController {
     fun error(e: Exception): RequestError {
         log.error("Exception when creating response", e)
         return RequestError(e.message)
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException::class)
+    fun missingRequestParam(ex: MissingServletRequestParameterException): ResponseEntity<String> {
+        return ResponseEntity.badRequest().body(ex.message)
     }
 
     /**
