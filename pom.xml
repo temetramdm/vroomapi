@@ -4,7 +4,7 @@
 
 	<groupId>com.temetra</groupId>
 	<artifactId>vroomapi</artifactId>
-	<version>2.4-SNAPSHOT</version>
+	<version>2.4</version>
 	<packaging>jar</packaging>
 
 	<name>vroom</name>
@@ -12,7 +12,7 @@
 		<connection>scm:git:ssh://git@github.com/temetramdm/vroomapi.git</connection>
 		<developerConnection>scm:git:ssh://git@github.com/temetramdm/vroomapi.git</developerConnection>
 		<url>https://github.com/temetramdm/vroomapi</url>
-	  <tag>HEAD</tag>
+	  <tag>vroomapi-2.4</tag>
   </scm>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
